@@ -27,6 +27,8 @@ GAMES = {
 }
 
 
+# Retrieve all historical data in CSV file
+
 def load_dataset(game):
     try:
         # Retrieve all historical data in CSV file
@@ -34,7 +36,6 @@ def load_dataset(game):
         # data = pd.read_csv(
         #    f"https://www.texaslottery.com/export/sites/lottery/Games/{game}/Winning_Numbers/{sys.argv[1]}.csv", header=None).tail(100)
 
-        # Retrieve all historical data in CSV file
         data = pd.read_csv(
             f"https://www.texaslottery.com/export/sites/lottery/Games/{GAMES[game]['game']}/Winning_Numbers/{game}.csv", header=None)
     except Exception as e:
@@ -45,6 +46,8 @@ def load_dataset(game):
                     "Num2", "Num3", "Num4", "Num5", GAMES[game]["ball"], GAMES[game]["featured_ball"]]
     return data
 
+
+# Preprocess the dataset by selecting the required columns and scaling the values
 
 def preprocess_dataset(data, game):
     required_data = data[["Num1", "Num2", "Num3",
@@ -70,6 +73,8 @@ def preprocess_dataset(data, game):
     return scaled_data, scaler_main, scaler_number
 
 
+# Split the data into training and testing sets
+
 def split_data(data):
     train_data, test_data = train_test_split(data, test_size=0.2)
 
@@ -82,6 +87,8 @@ def split_data(data):
     return train_data, test_data
 
 
+# Create the LSTM model
+
 def create_model(input_shape):
     model = keras.Sequential()
     model.add(keras.layers.LSTM(50, input_shape=input_shape))
@@ -91,9 +98,13 @@ def create_model(input_shape):
     return model
 
 
+# Train the model
+
 def train_model(model, train_data):
     model.fit(train_data, train_data, epochs=20, batch_size=1, verbose=0)
 
+
+# Generate predictions using the trained model
 
 def generate_prediction(model, test_data, scaler_main, scaler_number):
     prediction = model.predict(test_data)
@@ -104,6 +115,8 @@ def generate_prediction(model, test_data, scaler_main, scaler_number):
 
     return prediction
 
+
+# Validate the predictions by ensuring they meet the featured ball number rules
 
 def validate_prediction(prediction, game):
     for i in range(len(prediction)):
@@ -130,6 +143,8 @@ def validate_prediction(prediction, game):
         print(
             f"Predicted {game.capitalize()} Draw {i+1}: {final_prediction}".replace(".", ""))
 
+
+# Main function to execute the code
 
 def main():
     # Check if the command-line argument is valid
