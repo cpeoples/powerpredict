@@ -29,11 +29,11 @@ GAMES = {
 
 def load_dataset(game):
     try:
-        # Retrieve all historical data in CSV file
+        # Retrieve the last n lines in CSV file
         # data = pd.read_csv(
         #    f"https://www.texaslottery.com/export/sites/lottery/Games/{game}/Winning_Numbers/{sys.argv[1]}.csv", header=None).tail(100)
 
-        # Retrieve the last n lines in CSV file
+        # Retrieve all historical data in CSV file
         data = pd.read_csv(
             f"https://www.texaslottery.com/export/sites/lottery/Games/{GAMES[game]['game']}/Winning_Numbers/{game}.csv", header=None)
     except Exception as e:
