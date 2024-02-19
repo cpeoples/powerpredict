@@ -28,12 +28,12 @@ alias python=python3
 alias pip=pip3
 ```
 
-#### Install Dependencies and Setup Virtual Environment
+#### Setup Virtual Environment and Install Dependencies
 
 ```bash
 git clone git@github.com:cpeoples/powerpredict.git
 cd powerpredict
-python -m venv env
+python -m venv powerpredict
 pip install -r requirements.txt
 ```
 
