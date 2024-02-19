@@ -33,7 +33,7 @@ alias pip=pip3
 ```bash
 git clone git@github.com:cpeoples/powerpredict.git
 cd powerpredict
-python -m venv powerpredict
+python -m venv env
 pip install -r requirements.txt
 ```
 
