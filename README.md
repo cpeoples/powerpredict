@@ -34,6 +34,7 @@ alias pip=pip3
 git clone git@github.com:cpeoples/powerpredict.git
 cd powerpredict
 python -m venv env
+source env/bin/activate
 pip install -r requirements.txt
 ```
 
