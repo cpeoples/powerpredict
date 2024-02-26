@@ -4,9 +4,9 @@ import numpy as np
 import pandas as pd
 import sys
 
-from tensorflow import keras
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler
+from tensorflow import keras
 
 # Define constants for game-specific information
 GAMES = {
