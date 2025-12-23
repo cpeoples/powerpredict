@@ -6,7 +6,7 @@ PowerPredict employs TensorFlow to implement a Long Short-Term Memory (LSTM) net
 
 <center><div style="display: inline_block"><br/>
 <img align="center" alt="python" height="50" width="50" src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Python-logo-notext.svg" />
-<img align="center" alt="tensorflow" height="50" src="https://www.gstatic.com/devrel-devsite/prod/v4697989523565db7bb6b13b31211edb8055f1ea80a18aa91f0fb410e4e163769/tensorflow/images/lockup.svg" />
+<img align="center" alt="tensorflow" height="50" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2d/Tensorflow_logo.svg/1122px-Tensorflow_logo.svg.png" />
 <img align="center" alt="keras" height="50" src="https://keras.io/img/logo-small.png" />
 </center>
 
