@@ -3,7 +3,6 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.18+-orange.svg)](https://www.tensorflow.org/)
 [![Keras](https://img.shields.io/badge/Keras-3.0+-red.svg)](https://keras.io/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
 **PowerPredict** is an advanced lottery number prediction system that uses **deep learning**, **statistical analysis**, and **ensemble methods** to generate Powerball and Mega Millions number predictions based on historical drawing data.
