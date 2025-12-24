@@ -203,7 +203,7 @@ This software is provided for **educational and entertainment purposes only**. L
 - The probability of winning Powerball is 1 in 292,201,338
 - The probability of winning Mega Millions is 1 in 302,575,350
 
-**Please gamble responsibly.** If you or someone you know has a gambling problem, call 1-800-522-4700.
+**Please gamble responsibly.**
 
 ---
 
