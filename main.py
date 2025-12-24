@@ -1102,6 +1102,178 @@ def print_analysis_report(analyzer):
     print("\n" + "=" * 70)
 
 
+def run_single_matrix(predictor, dl_predictor, num_preds, game, quick_mode):
+    """Run a single prediction matrix and return master predictions."""
+    # Statistical predictions
+    stat_preds = predictor.generate_statistical_prediction(num_preds)
+    stat_preds = validate_predictions(stat_preds, game)
+
+    # Markov predictions
+    markov_preds = predictor.generate_markov_prediction(num_preds)
+    markov_preds = validate_predictions(markov_preds, game)
+
+    # Pattern predictions
+    pattern_preds = predictor.generate_pattern_prediction(num_preds)
+    pattern_preds = validate_predictions(pattern_preds, game)
+
+    if not quick_mode and dl_predictor is not None:
+        # Deep Learning predictions
+        dl_preds = dl_predictor.predict(num_preds)
+        dl_preds = validate_predictions(dl_preds, game)
+
+        # Master Ensemble with DL
+        master_preds = (
+            stat_preds * 0.25 +
+            markov_preds * 0.20 +
+            pattern_preds * 0.20 +
+            dl_preds * 0.35
+        )
+    else:
+        # Quick ensemble (statistical methods only)
+        master_preds = (
+            stat_preds * 0.4 +
+            markov_preds * 0.3 +
+            pattern_preds * 0.3
+        )
+
+    master_preds = validate_predictions(master_preds, game)
+    return master_preds
+
+
+def analyze_matrix_consensus(all_matrices, game, num_preds):
+    """Analyze multiple matrices and generate consensus predictions."""
+    high_range = GAMES[game]["high_range"]
+    ball_range = GAMES[game]["featured_range"]
+
+    # Collect all numbers across matrices
+    all_main_numbers = []
+    all_ball_numbers = []
+
+    for matrix in all_matrices:
+        for pred in matrix:
+            main_nums = [int(np.rint(n)) for n in pred[:5]]
+            ball_num = int(np.rint(pred[5]))
+            all_main_numbers.extend(main_nums)
+            all_ball_numbers.append(ball_num)
+
+    # Count frequencies
+    main_freq = Counter(all_main_numbers)
+    ball_freq = Counter(all_ball_numbers)
+
+    # Calculate percentages
+    total_main = len(all_main_numbers)
+    total_balls = len(all_ball_numbers)
+
+    main_percentages = {num: count / total_main *
+                        100 for num, count in main_freq.items()}
+    ball_percentages = {num: count / total_balls *
+                        100 for num, count in ball_freq.items()}
+
+    # Generate consensus predictions
+    consensus_predictions = []
+
+    # Get top numbers by frequency
+    # Pool of top numbers
+    top_main = [num for num, _ in main_freq.most_common(25)]
+    top_balls = [num for num, _ in ball_freq.most_common(10)]
+
+    # Create weights based on frequency
+    main_weights = np.array([main_freq.get(n, 0)
+                            for n in top_main], dtype=float)
+    main_weights = main_weights / main_weights.sum()
+
+    ball_weights = np.array([ball_freq.get(n, 0)
+                            for n in top_balls], dtype=float)
+    ball_weights = ball_weights / ball_weights.sum()
+
+    used_balls = set()
+
+    for _ in range(num_preds):
+        # Select 5 unique main numbers weighted by cross-matrix frequency
+        selected = set()
+        attempts = 0
+        while len(selected) < 5 and attempts < 100:
+            idx = np.random.choice(len(top_main), p=main_weights)
+            num = top_main[idx]
+            if num not in selected:
+                selected.add(num)
+            attempts += 1
+
+        # Fill if needed
+        while len(selected) < 5:
+            num = np.random.randint(1, high_range + 1)
+            if num not in selected:
+                selected.add(num)
+
+        # Select ball (unique across predictions)
+        ball = None
+        for b in top_balls:
+            if b not in used_balls:
+                ball = b
+                used_balls.add(b)
+                break
+        if ball is None:
+            ball = np.random.randint(1, ball_range + 1)
+
+        consensus_predictions.append(np.append(sorted(list(selected)), ball))
+
+    return (
+        np.array(consensus_predictions),
+        main_freq,
+        ball_freq,
+        main_percentages,
+        ball_percentages,
+        len(all_matrices)
+    )
+
+
+def print_matrix_consensus(consensus_data, game):
+    """Print the matrix consensus analysis and predictions."""
+    (consensus_preds, main_freq, ball_freq,
+     main_pct, ball_pct, num_matrices) = consensus_data
+
+    ball_name = GAMES[game]['ball']
+
+    print(f"\n{'='*70}")
+    print(f"🔬 MATRIX CONSENSUS ANALYSIS ({num_matrices} matrices)")
+    print(f"{'='*70}")
+
+    # Top main numbers
+    print(f"\n📊 Most Frequent Main Numbers Across All Matrices:")
+    for num, count in main_freq.most_common(10):
+        bar = "█" * int(main_pct[num] / 2)
+        print(
+            f"   #{num:2d}: {count:3d} appearances ({main_pct[num]:5.1f}%) {bar}")
+
+    # Top ball numbers
+    print(f"\n🎱 Most Frequent {ball_name}s Across All Matrices:")
+    for num, count in ball_freq.most_common(5):
+        bar = "█" * int(ball_pct[num] / 2)
+        print(
+            f"   #{num:2d}: {count:3d} appearances ({ball_pct[num]:5.1f}%) {bar}")
+
+    # Consensus predictions
+    print(f"\n{'='*70}")
+    print(f"⭐ CONSENSUS PREDICTIONS (Based on {num_matrices}-Matrix Analysis)")
+    print(f"{'='*70}")
+    print(f"\n🎰 MATRIX CONSENSUS:")
+    print("-" * 50)
+
+    for i, pred in enumerate(consensus_preds):
+        main_str = " - ".join(f"{int(n):2d}" for n in pred[:5])
+        # Calculate consensus strength based on how often these numbers appeared
+        nums_in_pred = [int(n) for n in pred[:5]]
+        avg_pct = np.mean([main_pct.get(n, 0) for n in nums_in_pred])
+        ball_strength = ball_pct.get(int(pred[5]), 0)
+        overall_strength = (avg_pct + ball_strength) / 2
+
+        print(
+            f"   #{i+1}: [{main_str}]  {ball_name}: {int(pred[5]):2d} (consensus: {overall_strength:.1f}%)")
+
+    print(
+        f"\n   ℹ️  Consensus % = frequency across {num_matrices} independent prediction runs")
+
+
 def parse_arguments():
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
@@ -1112,6 +1284,7 @@ Examples:
   python main.py powerball -n 5           Generate 5 Powerball predictions
   python main.py megamillions -n 10 -a    Generate 10 predictions with analysis
   python main.py powerball -n 3 -q        Quick mode (statistical only)
+  python main.py powerball -n 5 -m 5      Run 5 matrices for consensus analysis
         """
     )
     parser.add_argument(
@@ -1135,6 +1308,12 @@ Examples:
         action='store_true',
         help='Quick mode - skip deep learning (faster)'
     )
+    parser.add_argument(
+        '-m', '--matrix',
+        type=int,
+        default=1,
+        help='Number of matrices to run for consensus analysis (default: 1)'
+    )
     return parser.parse_args()
 
 
@@ -1142,6 +1321,7 @@ def main():
     args = parse_arguments()
     game = args.game
     num_preds = args.num_predictions
+    num_matrices = args.matrix
 
     print(f"\n{'='*70}")
     print(f"🔮 POWERPREDICT - INTELLIGENT LOTTERY ANALYSIS SYSTEM")
@@ -1150,6 +1330,8 @@ def main():
     print(f"   Predictions: {num_preds}")
     print(
         f"   Mode: {'Quick (Statistical)' if args.quick else 'Full (Statistical + Deep Learning)'}")
+    if num_matrices > 1:
+        print(f"   Matrices: {num_matrices} (consensus analysis enabled)")
 
     # Load data
     print(f"\n📥 Loading historical data...")
@@ -1202,6 +1384,9 @@ def main():
     pattern_preds = predictor.generate_pattern_prediction(num_preds)
     pattern_preds = validate_predictions(pattern_preds, game)
     print_predictions(pattern_preds, game, "PATTERN MATCHING MODEL")
+
+    dl_predictor = None  # Initialize for matrix feature
+    dl_preds = None
 
     if not args.quick:
         # Deep Learning predictions
@@ -1258,6 +1443,50 @@ def main():
         )
         quick_preds = validate_predictions(quick_preds, game)
         print_predictions(quick_preds, game, "STATISTICAL ENSEMBLE")
+
+    # Matrix consensus analysis (if requested)
+    if num_matrices > 1:
+        print(
+            f"\n🔄 Running {num_matrices} additional matrices for consensus...")
+
+        # Collect all matrices (first one already done above)
+        all_matrices = []
+
+        # Get the master predictions from the first run
+        if not args.quick:
+            first_master = (
+                stat_preds * 0.25 +
+                markov_preds * 0.20 +
+                pattern_preds * 0.20 +
+                dl_preds * 0.35
+            )
+        else:
+            first_master = (
+                stat_preds * 0.4 +
+                markov_preds * 0.3 +
+                pattern_preds * 0.3
+            )
+        first_master = validate_predictions(first_master, game)
+        all_matrices.append(first_master)
+
+        # Run additional matrices
+        for m in range(1, num_matrices):
+            print(f"   Running matrix {m + 1}/{num_matrices}...")
+            matrix_preds = run_single_matrix(
+                predictor,
+                dl_predictor if not args.quick else None,
+                num_preds,
+                game,
+                args.quick
+            )
+            all_matrices.append(matrix_preds)
+
+        print(f"   ✓ All {num_matrices} matrices complete")
+
+        # Analyze consensus
+        consensus_data = analyze_matrix_consensus(
+            all_matrices, game, num_preds)
+        print_matrix_consensus(consensus_data, game)
 
     print(f"\n{'='*70}")
     print("⚠️  DISCLAIMER: Lottery outcomes are random. These predictions are")

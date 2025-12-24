@@ -70,19 +70,23 @@ python main.py megamillions -n 10 --analyze
 # Quick mode (statistical only, no deep learning)
 python main.py powerball -n 5 --quick
 
+# Run 5 matrices for consensus analysis
+python main.py powerball -n 5 --matrix 5
+
 # Show help
 python main.py --help
 ```
 
 ### Command Line Options
 
-| Option                  | Description                                           |
-| ----------------------- | ----------------------------------------------------- |
-| `powerball`             | Predict Powerball numbers (1-69 + Power Ball 1-26)    |
-| `megamillions`          | Predict Mega Millions numbers (1-70 + Mega Ball 1-25) |
-| `-n, --num-predictions` | Number of predictions to generate (default: 5)        |
-| `-a, --analyze`         | Show detailed statistical analysis                    |
-| `-q, --quick`           | Skip deep learning (faster, statistical only)         |
+| Option                  | Description                                            |
+| ----------------------- | ------------------------------------------------------ |
+| `powerball`             | Predict Powerball numbers (1-69 + Power Ball 1-26)     |
+| `megamillions`          | Predict Mega Millions numbers (1-70 + Mega Ball 1-25)  |
+| `-n, --num-predictions` | Number of predictions to generate (default: 5)         |
+| `-a, --analyze`         | Show detailed statistical analysis                     |
+| `-q, --quick`           | Skip deep learning (faster, statistical only)          |
+| `-m, --matrix`          | Number of matrices for consensus analysis (default: 1) |
 
 ---
 
