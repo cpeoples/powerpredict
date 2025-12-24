@@ -5,27 +5,31 @@ Employs multiple intelligent strategies: statistical analysis, pattern recogniti
 Markov chains, temporal analysis, and deep learning ensemble methods.
 """
 
-import argparse
-import warnings
-import numpy as np
-import pandas as pd
-from collections import Counter, defaultdict
-from itertools import combinations
-from datetime import datetime
-
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import MinMaxScaler
-from sklearn.cluster import KMeans
-from tensorflow import keras
-from tensorflow.keras.layers import (
+# Suppress warnings before imports
+from keras.regularizers import l2
+from keras.models import Model
+from keras.layers import (
     LSTM, GRU, Dense, Dropout, Bidirectional, Input,
     MultiHeadAttention, LayerNormalization, GlobalAveragePooling1D,
     Concatenate, BatchNormalization
 )
-from tensorflow.keras.models import Model
-from tensorflow.keras.regularizers import l2
-
+import keras
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import MinMaxScaler
+from sklearn.model_selection import train_test_split
+from datetime import datetime
+from itertools import combinations
+from collections import Counter, defaultdict
+import pandas as pd
+import numpy as np
+import argparse
+import os
+import warnings
 warnings.filterwarnings('ignore')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+
+# Keras 3.x imports (standalone keras, not tensorflow.keras)
 
 # Game configurations
 GAMES = {

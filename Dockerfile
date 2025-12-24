@@ -6,6 +6,8 @@ WORKDIR /app
 # Prevent Python from writing pyc files and buffering stdout/stderr
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV TF_CPP_MIN_LOG_LEVEL=3
+ENV PYTHONWARNINGS=ignore
 
 # Install system dependencies required for building Python packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,9 +24,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Set entrypoint to run the prediction script
-ENTRYPOINT ["python", "main.py"]
+# Set entrypoint to run the prediction script with warning suppression
+ENTRYPOINT ["python", "-W", "ignore", "main.py"]
 
 # Default command shows help
 CMD ["--help"]
-
