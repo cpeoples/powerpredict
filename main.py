@@ -864,73 +864,122 @@ class DeepLearningPredictor:
             verbose=verbose
         )
 
-    def predict(self, num_predictions, temperature=0.8):
+    def predict(self, num_predictions, temperature=1.2):
         """
-        Generate predictions using model ensemble with temperature sampling.
+        Generate predictions with STRONG diversity enforcement.
 
-        Temperature controls randomness:
-        - Lower (0.5) = more deterministic, closer to model's "best guess"
-        - Higher (1.5) = more random, more diverse predictions
+        Features:
+        - No repeated Power Balls across predictions
+        - Minimum Hamming distance between main number sets
+        - Aggressive temperature scaling to break mode collapse
         """
         predictions = []
-        used_numbers = []  # Track to encourage diversity
+        used_balls = set()  # NO REPEATED POWER BALLS
+        all_used_mains = []  # Track all main numbers for Hamming distance
 
-        # Use different starting points for diversity
+        # Use widely different starting points (as positive indices)
+        max_offset = min(30, len(self.X) - 1)
         seq_offsets = np.linspace(
-            0, min(10, len(self.X) - 1), num_predictions, dtype=int)
+            0, max_offset, num_predictions + 5, dtype=int)
+        np.random.shuffle(seq_offsets)
 
         for i in range(num_predictions):
-            # Start from different points in history for diversity
-            start_idx = -(1 + seq_offsets[i])
-            current_seq = self.X[start_idx:start_idx +
-                                 1].copy() if start_idx != -1 else self.X[-1:].copy()
+            best_pred = None
+            best_diversity_score = -1
 
-            # Get predictions from both models
-            trans_pred = self.transformer.predict(current_seq, verbose=0)
-            hybrid_pred = self.hybrid.predict(current_seq, verbose=0)
+            # Try multiple candidates, pick the most diverse
+            for attempt in range(20):
+                # Calculate index from end (using positive indexing to avoid slice issues)
+                offset_idx = (i + attempt) % len(seq_offsets)
+                offset = seq_offsets[offset_idx] + attempt
+                idx = len(self.X) - 1 - (offset % len(self.X))
+                idx = max(0, min(idx, len(self.X) - 1))  # Clamp to valid range
 
-            # Weighted average with slight randomization of weights
-            w1 = 0.4 + np.random.uniform(-0.1, 0.1)
-            w2 = 1.0 - w1
-            ensemble_pred = trans_pred * w1 + hybrid_pred * w2
+                # Get single sample using proper indexing
+                current_seq = self.X[idx:idx + 1].copy()
 
-            # Apply temperature-based noise to prevent mode collapse
-            # Higher temperature = more randomness
-            noise_scale = temperature * 0.1
-            noise = np.random.normal(0, noise_scale, ensemble_pred.shape)
-            ensemble_pred = ensemble_pred + noise
+                # Get predictions from both models
+                trans_pred = self.transformer.predict(current_seq, verbose=0)
+                hybrid_pred = self.hybrid.predict(current_seq, verbose=0)
 
-            # Clip to valid range [0, 1] before inverse transform
-            ensemble_pred = np.clip(ensemble_pred, 0, 1)
+                # Randomize model weights more aggressively
+                w1 = np.random.uniform(0.2, 0.8)
+                w2 = 1.0 - w1
+                ensemble_pred = trans_pred * w1 + hybrid_pred * w2
 
-            # Inverse transform
-            main_pred = self.scaler_main.inverse_transform(
-                ensemble_pred[:, :5])
-            ball_pred = self.scaler_ball.inverse_transform(
-                ensemble_pred[:, 5:6])
+                # AGGRESSIVE temperature noise - increases with attempt
+                noise_scale = temperature * 0.2 * (1 + attempt * 0.1)
+                noise = np.random.normal(0, noise_scale, ensemble_pred.shape)
+                ensemble_pred = ensemble_pred + noise
 
-            pred = np.column_stack((main_pred, ball_pred))[0]
+                # Clip and transform
+                ensemble_pred = np.clip(ensemble_pred, 0, 1)
+                main_pred = self.scaler_main.inverse_transform(
+                    ensemble_pred[:, :5])
+                ball_pred = self.scaler_ball.inverse_transform(
+                    ensemble_pred[:, 5:6])
 
-            # Add diversity penalty - slightly adjust if too similar to previous
-            if used_numbers:
-                for prev in used_numbers[-3:]:  # Check last 3 predictions
-                    overlap = len(
-                        set(np.rint(pred[:5])) & set(np.rint(prev[:5])))
-                    if overlap >= 3:  # Too similar, add more noise
-                        diversity_noise = np.random.uniform(-5, 5, 5)
-                        pred[:5] = pred[:5] + diversity_noise
+                pred = np.column_stack((main_pred, ball_pred))[0]
 
-            used_numbers.append(pred[:5].copy())
-            predictions.append(pred)
+                # Round values
+                main_nums = set(int(np.clip(np.rint(n), 1, self.high_range))
+                                for n in pred[:5])
+                ball_num = int(np.clip(np.rint(pred[5]), 1, self.ball_range))
+
+                # HARD CONSTRAINT: Ball must be unique
+                if ball_num in used_balls:
+                    available = set(range(1, self.ball_range + 1)) - used_balls
+                    if available:
+                        ball_num = np.random.choice(list(available))
+
+                # Calculate diversity score
+                diversity_score = 0
+
+                # Bonus for unique ball
+                if ball_num not in used_balls:
+                    diversity_score += 10
+
+                # Bonus for different main numbers (Hamming distance)
+                for prev_mains in all_used_mains:
+                    diff_count = len(main_nums - prev_mains)
+                    diversity_score += diff_count
+
+                # Bonus for spread across number range
+                if main_nums:
+                    spread = max(main_nums) - min(main_nums)
+                    diversity_score += spread / 10
+
+                if diversity_score > best_diversity_score:
+                    best_diversity_score = diversity_score
+                    best_pred = pred.copy()
+                    best_pred[5] = ball_num
+                    best_main_nums = main_nums
+
+                # If we found a very diverse prediction, use it
+                if diversity_score > 30 + (i * 5):
+                    break
+
+            # Use best prediction found
+            if best_pred is not None:
+                used_balls.add(int(np.rint(best_pred[5])))
+                all_used_mains.append(best_main_nums)
+                predictions.append(best_pred)
 
         return np.array(predictions)
 
 
-def validate_predictions(predictions, game):
-    """Ensure predictions are valid lottery numbers."""
+def validate_predictions(predictions, game, enforce_ball_diversity=True):
+    """
+    Ensure predictions are valid lottery numbers with diversity enforcement.
+
+    - All main numbers unique within each prediction
+    - Optional: All Power Balls unique across predictions
+    """
     validated = []
     high_range = GAMES[game]["high_range"]
     ball_range = GAMES[game]["featured_range"]
+    used_balls = set()
+    all_main_sets = []
 
     for pred in predictions:
         main = np.rint(pred[:5]).astype(int)
@@ -944,11 +993,34 @@ def validate_predictions(predictions, game):
         unique = []
         used = set()
         for num in main:
-            while num in used:
+            attempts = 0
+            while (num in used or num < 1 or num > high_range) and attempts < 100:
                 num = np.random.randint(1, high_range + 1)
+                attempts += 1
             unique.append(num)
             used.add(num)
 
+        # Enforce ball diversity if requested
+        if enforce_ball_diversity and ball in used_balls:
+            available = set(range(1, ball_range + 1)) - used_balls
+            if available:
+                ball = np.random.choice(list(available))
+
+        # Check Hamming distance from previous predictions
+        unique_set = set(unique)
+        for prev_set in all_main_sets:
+            overlap = len(unique_set & prev_set)
+            if overlap >= 4:  # Too similar - swap one number
+                to_swap = list(unique_set & prev_set)[0]
+                idx = unique.index(to_swap)
+                new_num = np.random.randint(1, high_range + 1)
+                while new_num in unique_set:
+                    new_num = np.random.randint(1, high_range + 1)
+                unique[idx] = new_num
+                unique_set = set(unique)
+
+        used_balls.add(ball)
+        all_main_sets.append(unique_set)
         validated.append(np.append(sorted(unique), ball))
 
     return np.array(validated)
