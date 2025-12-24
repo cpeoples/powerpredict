@@ -5,7 +5,7 @@
 [![Keras](https://img.shields.io/badge/Keras-3.0+-red.svg)](https://keras.io/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg)](https://www.docker.com/)
 
-**PowerPredict** is an advanced lottery number prediction system that uses **deep learning**, **statistical analysis**, and **ensemble methods** to generate Powerball and Mega Millions number predictions based on historical drawing data.
+**PowerPredict** is an advanced lottery number prediction system that uses **deep learning**, **statistical analysis**, and **ensemble methods** to generate Powerball and Megamillions number predictions based on historical drawing data.
 
 > ⚠️ **Disclaimer**: Lottery outcomes are random. This tool is for educational and entertainment purposes only. Please gamble responsibly.
 
