@@ -190,12 +190,6 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ---
 
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
 ## ⚠️ Disclaimer
 
 This software is provided for **educational and entertainment purposes only**. Lottery outcomes are determined by cryptographically secure random number generators and cannot be predicted by any statistical or machine learning method.
